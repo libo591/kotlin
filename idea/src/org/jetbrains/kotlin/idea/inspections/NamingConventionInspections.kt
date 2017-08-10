@@ -17,11 +17,18 @@
 package org.jetbrains.kotlin.idea.inspections
 
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.editor.event.DocumentAdapter
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.ui.EditorTextField
 import com.siyeh.ig.fixes.RenameFix
+import org.intellij.lang.regexp.RegExpFileType
 import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtVisitorVoid
+import java.awt.BorderLayout
+import javax.swing.JPanel
 
 abstract class NamingConventionInspection : AbstractKotlinInspection() {
     private var nameRegex: Regex = defaultNamePattern.toRegex()
@@ -42,6 +49,8 @@ abstract class NamingConventionInspection : AbstractKotlinInspection() {
                                    RenameFix())
         }
     }
+
+    override fun createOptionsPanel() = NamingConventionOptionsPanel(this)
 }
 
 class ClassNameInspection : NamingConventionInspection() {
@@ -54,5 +63,20 @@ class ClassNameInspection : NamingConventionInspection() {
                 verifyName(classOrObject, holder)
             }
         }
+    }
+}
+
+class NamingConventionOptionsPanel(owner: NamingConventionInspection) : JPanel() {
+    init {
+        layout = BorderLayout()
+
+        val regexField = EditorTextField(owner.namePattern, null, RegExpFileType.INSTANCE)
+        regexField.document.addDocumentListener(object : DocumentAdapter() {
+            override fun documentChanged(e: DocumentEvent?) {
+                owner.namePattern = regexField.text
+            }
+        })
+        val labeledComponent = LabeledComponent.create(regexField, "Pattern:", BorderLayout.WEST)
+        add(labeledComponent, BorderLayout.CENTER)
     }
 }
